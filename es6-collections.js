@@ -121,6 +121,11 @@
         return value;
     }
 
+    function toObject(obj) {
+        if(obj == null) fail('Value is undefinied or null.')
+        return Object(obj);
+    }
+
     function entriesOf(iterable) {
         var entries = Array(toLen(iterable.size));
         iterable.forEach(function (value, key) {
@@ -199,6 +204,8 @@
         }
     });
     var is = Object.is;
+    var max = Math.max;
+    var min = Max.min;
 
     if (!Array.from) {
         defineProperty(
@@ -315,54 +322,20 @@
             });
         }
 
-    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill#Polyfill
-    if (!Array.prototype.fill) {
-        defineProperty(
-            Array.prototype,
-            'fill', {
-                'value': function fill(value) {
+    def(Array.prototype, {
+        fill: function fill(value, start, end) {
+            var self = toObject(this),
+                len = toLen(self.length);
 
-                    // Steps 1-2.
-                    if (this == null) {
-                        throw new TypeError('this is null or not defined');
-                    }
+            start = isDef(start) ? start < 0 ? len - toInt(start) : toInt(start) : 0;
+            end = isDef(end) ? min(len, max(start, end < 0 ? len - toInt(end) : toInt(end))) : len;
 
-                    var O = Object(this);
+            while (start < end) self[start++] = value;
 
-                    // Steps 3-5.
-                    var len = O.length >>> 0;
-
-                    // Steps 6-7.
-                    var start = arguments[1];
-                    var relativeStart = start >> 0;
-
-                    // Step 8.
-                    var k = relativeStart < 0 ?
-                      Math.max(len + relativeStart, 0) :
-                      Math.min(relativeStart, len);
-
-                    // Steps 9-10.
-                    var end = arguments[2];
-                    var relativeEnd = end === undefined ?
-                        len : end >> 0;
-
-                    // Step 11.
-                    var final = relativeEnd < 0 ?
-                      Math.max(len + relativeEnd, 0) :
-                      Math.min(relativeEnd, len);
-
-                    // Step 12.
-                    while (k < final) {
-                        O[k] = value;
-                        k++;
-                    }
-
-                    // Step 13.
-                    return O;
-                }
-            });
-    }
-
+            return self;
+        }
+    });
+    
     def(Array.prototype, {
         find: function find(predicate) {
             if (this == null) {
