@@ -57,27 +57,26 @@
         return typeof object == 'string';
     }
 
-    function isCollection(object) {
-        return (isMap(object) || isSet(object)) && isFn(object.forEach);
-    }
-
-    function isPlain(object) {
-        return toStrTag(object) == 'Object';
+    function isIterator(object) {
+        return object && isFn(object.next);
     }
 
     function isIterable(o) {
-        return isFn(o.entries) && isFn(o.values) && isFn(o.keys);
+        return isArray(o) || isStr(o) || isMap(o) || isSet(o) || isIterator(o);
     }
 
-    function isIterator(object) {
-        var tag = toStrTag(object);
-        return tag === 'Set Iterator' || tag === 'Map Iterator' || tag === 'Array Iterator' || tag === 'Iterator'
-            || (object && isFn(object.next));
+    function iterate(o, fn) {
+        var it = isIterator(o) ? o : isMap(o) ? o.entries() : o.values(),
+            res = it.next();
+        while (!res.done) {
+            fn(res.value);
+            res = it.next();
+        }
     }
 
     function isEntry(object) {
         var type = typeof object;
-        return type !== 'number' && type !== 'string';
+        return type != 'number' && type != 'string';
     }
 
     function isNull(object) {
@@ -122,10 +121,18 @@
             done: true
         }
     }
+
+    function mapAdd(ent) {
+        this.set(ent[0], ent[1]);
+    }
     
     // FEATURE DETECTION
     function testConst(C) {
         return (new C([[0,0]])).size > 0;
+    }
+
+    function testIsIterable(o) {
+        return (isFn(o.entries) && isFn(o.values) && isFn(o.keys));
     }
 
     var feat = {
@@ -296,7 +303,7 @@
         }
     });
 
-    if (!isIterable(window.Array.prototype)) {
+    if (!testIsIterable(window.Array.prototype)) {
             var ArrayIterator = function ArrayIterator(array, kind) {
                 guardType(isArray, this, 'Map');
                 def(this, {
@@ -436,34 +443,17 @@
     } else {
         if (!testConst(NativeMap)) {
             window.Map = function Map(source) {
-                if (isCollection(source)) {
-                    source.forEach(function (entry) {
-                        isEntryOrDie(entry);
-                        self.set(entry[0], entry[1]);
-                    });
-                }
-                else if (isPlain(source) || isArrayLike(source)) {
-                    for (var i = 0, n = source.length; i < n; i++) {
-                        isEntryOrDie(source[i]);
-                        self.set(source[i][0], source[i][1]);
-                    }
-                }
-                else if (isIterator(source)) {
-                    var item
-                    while ((item = source.next()) && !item.done) {
-                        isEntryOrDie(item.value);
-                        self.set(item.value[0], item.value[1]);
-                    }
-                }
-                else if (!isNull(source)) {
-                    throw new TypeError(toString(source) + ' is not iterable');
-                }
+                var self = new NativeMap();
+                if (isIterable(source))
+                    iterate(source, mapAdd.bind(self));
+                else if (!isNull(source))
+                    fail(toString(source) + ' is not iterable');
                 return self;
             };
         }
     }
     
-    if (!isIterable(window.Map.prototype)) {
+    if (!testIsIterable(window.Map.prototype)) {
         var MapIterator = function MapIterator(map, kind) {
             guardType(isMap, map, 'Map');
             def(this, {
@@ -601,9 +591,20 @@
                 return this._values.size;
             }
         });
+    } else {
+        if (!testConst(NativeSet)) {
+            window.Set = function Set(source) {
+                var self = new NativeSet();
+                if (isIterable(source))
+                    iterate(source, self.add.bind(self));
+                else if (!isNull(source))
+                    fail(toString(source) + ' is not iterable');
+                return self;
+            };
+        }
     }
     
-    if (!isIterable(window.Set.prototype)) {
+    if (!testIsIterable(window.Set.prototype)) {
         var SetIterator = function SetIterator(set, kind) {
             guardType(isSet, set, 'Set');
             def(this, {
