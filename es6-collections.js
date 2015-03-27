@@ -125,6 +125,11 @@
     function mapAdd(ent) {
         this.set(ent[0], ent[1]);
     }
+
+    function toPos(i, len) {
+        i = i | 0;
+        return max(0, i < 0 ? len + i : i);
+    }
     
     // FEATURE DETECTION
     function testConst(C) {
@@ -251,52 +256,49 @@
 
         //Array#find
         find: function find(predicate) {
-            if (this == null) {
-                throw new TypeError('Array.prototype.find called on null or undefined');
-            }
-            if (typeof predicate !== 'function') {
-                throw new TypeError('predicate must be a function');
-            }
-            var list = Object(this);
-            var length = list.length >>> 0;
-            var thisArg = arguments[1];
-            var value;
+            if (!isFun(predicate))
+                fail('predicate must be a function');
 
-            for (var i = 0; i < length; i++) {
+            var thisArg = arguments[1],
+                hasThisArg = arguments.length >= 2,
+                self = toObject(this),
+                len = toLen(this.length),
+                value;
+
+            for (var i = 0; i < len; i++) {
                 value = list[i];
-                if (predicate.call(thisArg, value, i, list)) {
+                if (phasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
                     return value;
-                }
             }
-            return undefined;
+            return void 0;
         },
 
         //Array#findIndex
-        findIndex: function findIndex(predicate) {
-            if (this == null) {
-                throw new TypeError('Array.prototype.find called on null or undefined');
-            }
-            if (typeof predicate !== 'function') {
-                throw new TypeError('predicate must be a function');
-            }
-            var list = Object(this);
-            var length = list.length >>> 0;
-            var thisArg = arguments[1];
-            var value;
+        findIndex: function findIndex(predicate/*, thisArg */) {
+            if (!isFun(predicate))
+                fail('predicate must be a function');
 
-            for (var i = 0; i < length; i++) {
-                value = list[i];
-                if (predicate.call(thisArg, value, i, list)) {
+            var thisArg = arguments[1],
+                hasThisArg = arguments.length >= 2,
+                self = toObject(this),
+                len = toLen(this.length),
+                value;
+
+            for (var i = 0; i < len; i++) {
+                value = self[i];
+                if (hasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
                     return i;
-                }
             }
             return -1;
         },
 
         //Array#includes
-        includes: function includes(search, fromIndex) {
-            for(var i = fromIndex >>> 0, n = this.length >>> 0; i < n; i++) {
-                if (is(search, this[i]))
+        includes: function includes(search/*, fromIndex*/) {
+            var self = toObject(this),
+                len = toLen(this.length),
+                i = toPos(arguments[1], len);
+            while(i < len) {
+                if (is(search, this[i++]))
                     return true;
             }
             return false;
