@@ -12,17 +12,6 @@
         return toString.call(object).slice(8, -1);
     }
     
-    function def(obj, props) {
-        for (var x in props) {
-            if(!obj.hasOwnProperty(x)) {}
-            defineProperty(obj, x, {
-                value: props[x],
-                writeable: true
-            })
-        }
-        return obj;
-    }
-    
     function toInt(val) {
         return val >> 0;
     }
@@ -140,210 +129,234 @@
         return (isFn(o.entries) && isFn(o.values) && isFn(o.keys));
     }
 
-    def(Object, {
-        //Object.is
-        is: function is(a, b) {
-            return a === 0 && b === 0
-                ? 1 / v1 === 1 / v2
-                : a === b || a !== a && b !== b;
-        }
-    });
+    if (!Object.is)
+        defineProperty(Object, 'is', {
+            //Object.is
+            value: function is(a, b) {
+                return a === 0 && b === 0
+                    ? 1 / v1 === 1 / v2
+                    : a === b || a !== a && b !== b;
+            }
+        });
+
     var is = Object.is;
     var max = Math.max;
     var min = Math.min;
 
-    // Array ----------------------------------------------
+    // Array.from
+    if (!Array.from)
+        defineProperty(Array.prototype, 'from', {
+            value: function from(source, mapFn, thisArg) {
+                if (source == null)
+                    fail("Array.from requires an array-like object - not null or undefined");
 
-    def(Array, {
-        //Array.from
-        from: function from(source, mapFn, thisArg) {
-            if (source == null)
-                fail("Array.from requires an array-like object - not null or undefined");
+                if (isDef(mapFn) && !isFn(mapFn))
+                    fail('Array.from: when provided, the second argument must be a function');
 
-            if (isDef(mapFn) && !isFn(mapFn))
-                fail('Array.from: when provided, the second argument must be a function');
-
-            var len = toLen(source.length || source.size);
-            var result = isFn(this) ? new this(len) : new Array(len);
-            var hasThisArg = arguments.length > 2;
+                var len = toLen(source.length || source.size);
+                var result = isFn(this) ? new this(len) : new Array(len);
+                var hasThisArg = arguments.length > 2;
                     
-            var iterator = 
-                isMap(source) ? source.entires() :
-                isSet(source) ? source.values() :
-                isIterator(source) ? source :
-                void 0;
-            var i = 0;
-            if (iterator) {
-                var itRes = iterator.next();
-                while(!itRes.done) {
-                    result[i] = mapFn ? (hasThisArg ? mapFn.call(thisArg, itRes.value, i) : mapFn(itRes.value, i)) : itRes.value;
-                    itRes = iterator.next();
-                    i++;
+                var iterator = 
+                    isMap(source) ? source.entires() :
+                    isSet(source) ? source.values() :
+                    isIterator(source) ? source :
+                    void 0;
+                var i = 0;
+                if (iterator) {
+                    var itRes = iterator.next();
+                    while(!itRes.done) {
+                        result[i] = mapFn ? (hasThisArg ? mapFn.call(thisArg, itRes.value, i) : mapFn(itRes.value, i)) : itRes.value;
+                        itRes = iterator.next();
+                        i++;
+                    }
+                } else {
+                    while (i < len) {
+                        result[i] = mapFn ? (hasThisArg ? mapFn.call(thisArg, source[i], i) : mapFn(source[i], i)) : source[i];
+                        i++;
+                    }
                 }
-            } else {
-                while (i < len) {
-                    result[i] = mapFn ? (hasThisArg ? mapFn.call(thisArg, source[i], i) : mapFn(source[i], i)) : source[i];
-                    i++;
-                }
+                return result;
             }
-            return result;
-        },
+        });
 
-        //Array.of
-        of: function of() {
-            return Array.prototype.slice.call(arguments);
-        }
-    })
+    // Array.of
+    if (!Array.of)
+        defineProperty(Array, 'of', {
+            value: function of() {
+                return Array.prototype.slice.call(arguments);
+            }
+        });
 
-    def(Array.prototype, {
-        //Array#copyWithin
-        copyWithin: function copyWithin(target, start/*, end*/) {
-            var end = arguments[2],
-                self = toObject(this),
-                len = toLen(self.length);
+    // Array#copyWithin
+    if (!Array.prototype.copyWithin)
+        defineProperty(Array.prototype, 'copyWithin', {
+            value: function copyWithin(target, start/*, end*/) {
+                var end = arguments[2],
+                    self = toObject(this),
+                    len = toLen(self.length);
 
-            target = target >> 0;
-            start = start >> 0;
-            end = isDef(end) ? end >> 0 : len;
+                target = target >> 0;
+                start = start >> 0;
+                end = isDef(end) ? end >> 0 : len;
 
-            var to = target < 0 ? max(len + target, 0) : min(target, len),
-                from = start < 0 ? max(len + start, 0) : min(start, len)
+                var to = target < 0 ? max(len + target, 0) : min(target, len),
+                    from = start < 0 ? max(len + start, 0) : min(start, len)
                 final = end < 0 ? max(len + end, 0) : min(end, len),
                 count = min(final - from, len - to),
                 direction = 1;
 
-            if (from < to && to < (from + count)) {
-                direction = -1;
-                from += count - 1;
-                to += count - 1;
+                if (from < to && to < (from + count)) {
+                    direction = -1;
+                    from += count - 1;
+                    to += count - 1;
+                }
+
+                while (count > 0) {
+                    if (from in self)
+                        self[to] = self[from];
+                    else
+                        delete self[to];
+
+                    from += direction;
+                    to += direction;
+                    count--;
+                }
+
+                return self;
             }
+        });
 
-            while (count > 0) {
-                if (from in self)
-                    self[to] = self[from];
-                else
-                    delete self[to];
+    // Array#fill
+    if (!Array.prototype.fill)
+        defineProperty(Array.prototype, 'fill', {
+            value: function fill(value, start, end) {
+                var self = toObject(this),
+                    len = toLen(self.length);
 
-                from += direction;
-                to += direction;
-                count--;
+                start = isDef(start) ? start < 0 ? len - toInt(start) : toInt(start) : 0;
+                end = isDef(end) ? min(len, max(start, end < 0 ? len - toInt(end) : toInt(end))) : len;
+
+                while (start < end) self[start++] = value;
+
+                return self;
             }
+        });
 
-            return self;
-        },
+    // Array#find
+    if (!Array.prototype.find)
+        defineProperty(Array.prototype, 'find', {
+            value: function find(predicate) {
+                if (!isFun(predicate))
+                    fail('predicate must be a function');
 
-        //Array#fill
-        fill: function fill(value, start, end) {
-            var self = toObject(this),
-                len = toLen(self.length);
+                var thisArg = arguments[1],
+                    hasThisArg = arguments.length >= 2,
+                    self = toObject(this),
+                    len = toLen(this.length),
+                    value;
 
-            start = isDef(start) ? start < 0 ? len - toInt(start) : toInt(start) : 0;
-            end = isDef(end) ? min(len, max(start, end < 0 ? len - toInt(end) : toInt(end))) : len;
-
-            while (start < end) self[start++] = value;
-
-            return self;
-        },
-
-        //Array#find
-        find: function find(predicate) {
-            if (!isFun(predicate))
-                fail('predicate must be a function');
-
-            var thisArg = arguments[1],
-                hasThisArg = arguments.length >= 2,
-                self = toObject(this),
-                len = toLen(this.length),
-                value;
-
-            for (var i = 0; i < len; i++) {
-                value = list[i];
-                if (phasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
-                    return value;
+                for (var i = 0; i < len; i++) {
+                    value = list[i];
+                    if (phasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
+                        return value;
+                }
+                return void 0;
             }
-            return void 0;
-        },
+        });
 
-        //Array#findIndex
-        findIndex: function findIndex(predicate/*, thisArg */) {
-            if (!isFun(predicate))
-                fail('predicate must be a function');
+    //Array#findIndex
+    if (!Array.prototype.findIndex)
+        defineProperty(Array.prototype, 'findIndex', {
+            value: function findIndex(predicate/*, thisArg */) {
+                if (!isFun(predicate))
+                    fail('predicate must be a function');
 
-            var thisArg = arguments[1],
-                hasThisArg = arguments.length >= 2,
-                self = toObject(this),
-                len = toLen(this.length),
-                value;
+                var thisArg = arguments[1],
+                    hasThisArg = arguments.length >= 2,
+                    self = toObject(this),
+                    len = toLen(this.length),
+                    value;
 
-            for (var i = 0; i < len; i++) {
-                value = self[i];
-                if (hasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
-                    return i;
+                for (var i = 0; i < len; i++) {
+                    value = self[i];
+                    if (hasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
+                        return i;
+                }
+                return -1;
             }
-            return -1;
-        },
+        });
 
-        //Array#includes
-        includes: function includes(search/*, fromIndex*/) {
-            var self = toObject(this),
-                len = toLen(this.length),
-                i = toPos(arguments[1], len);
-            while(i < len) {
-                if (is(search, this[i++]))
-                    return true;
+    // Array#includes
+    if (!Array.prototype.includes)
+        defineProperty(Array.prototype, 'includes', {
+            value: function includes(search/*, fromIndex*/) {
+                var self = toObject(this),
+                    len = toLen(this.length),
+                    i = toPos(arguments[1], len);
+                while(i < len) {
+                    if (is(search, this[i++]))
+                        return true;
+                }
+                return false;
             }
-            return false;
-        }
-    });
+        });
 
     if (!testIsIterable(window.Array.prototype)) {
             var ArrayIterator = function ArrayIterator(array, kind) {
                 guardType(isArray, this, 'Map');
-                def(this, {
-                    _array: array,
-                    _index: 0,
-                    _kind: kind
+                defineProperties(this, {
+                    _array: { value: array },
+                    _index: { value: 0 },
+                    _kind: { value: kind }
                 });
             }
-            def(ArrayIterator.prototype, 'next', function next() {
-                guardMethod(isArrayIterator, this, 'ArrayIterator#next');
-                    
-                var array = this._array;
-                
-                if (!isArray(array))
+
+            defineProperty(ArrayIterator.prototype, 'next', {
+                value: function next() {
+                    guardMethod(isArrayIterator, this, 'ArrayIterator#next');
+
+                    var array = this._array;
+
+                    if (!isArray(array))
+                        return iterDone();
+
+                    var kind = this._kind,
+                        i = this._index;
+
+                    if (i < array.length) {
+                        ++this._index;
+                        return iterNext(kind == 'key' ? i : kind == 'value' ? array[i] : [i, array[i]]);
+                    }
+
+                    this._array = void 0;
                     return iterDone();
-                
-                var kind = this._kind,
-                    i = this._index;
-                
-                if (i < array.length) {
-                    ++this._index;
-                    return iterNext(kind == 'key' ? i : kind == 'value' ? array[i] : [i, array[i]]);
                 }
-                
-                this._array = void 0;
-                return iterDone();
             });
 
-            def(window.Array.prototype, {
+            defineProperties(window.Array.prototype, {
                 //Array#entries
-                entries: function entries() {
-                    guardMethod(isArray, this, 'Array.prototype.entries');
-                    return new ArrayIterator(this, 'key+value');
-
+                entries: {
+                    value: function entries() {
+                        guardMethod(isArray, this, 'Array.prototype.entries');
+                        return new ArrayIterator(this, 'key+value');
+                    }
                 },
 
                 //Array#keys
-                keys: function keys() {
-                    guardMethod(isArray, this, 'Array.prototype.keys');
-                    return new ArrayIterator(this, 'key');
-
+                keys: {
+                    value: function keys() {
+                        guardMethod(isArray, this, 'Array.prototype.keys');
+                        return new ArrayIterator(this, 'key');
+                    }
                 },
 
                 //Array#values
-                values: function values() {
-                    guardMethod(isArray, this, 'Array.prototype.values');
-                    return new ArrayIterator(this, 'value');
+                values: {
+                    value: function values() {
+                        guardMethod(isArray, this, 'Array.prototype.values');
+                        return new ArrayIterator(this, 'value');
+                    }
                 }
             });
 
@@ -354,85 +367,103 @@
     if (!NativeMap) {
         window.Map = function Map() {
             guardType(isMap, this, 'Map');
-            def(this, '_entries', def([], '_size', 0));
+            defineProperty(this, '_entries', {
+                value: defineProperty([], '_size', {
+                    value: 0
+                })
+            });
         }
-        def(window.Map.prototype, {
+        defineProperties(window.Map.prototype, {
             //Map#clear
-            clear: function clear() {
-                var ents = this._entries;
-                for (var i = 0, n = ents.length; i < n; i++) {
-                    delete ents[i];
+            clear: {
+                value: function clear() {
+                    var ents = this._entries;
+                    for (var i = 0, n = ents.length; i < n; i++) {
+                        delete ents[i];
+                    }
+                    ents._size = 0;
                 }
-                ents._size = 0;
             },
 
             //Map#delete
-            'delete': function delete_(key) {
-                var ents = this._entries;
-                for (var i = 0, n = ents.length; i < n; i++) {
-                    if (ents[i] && is(key, ents[i][0])) {
-                        delete ents[i];
-                        --ents[i]._size;
-                        return true;
+            'delete': {
+                value: function delete_(key) {
+                    var ents = this._entries;
+                    for (var i = 0, n = ents.length; i < n; i++) {
+                        if (ents[i] && is(key, ents[i][0])) {
+                            delete ents[i];
+                            --ents[i]._size;
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
             },
 
             //Map#forEach
-            forEach: function forEach(callback, thisArg) {
-                var ents = this._entries;
-                for (var i = 0; i < ents.length; i++) {
-                    if (mapData[i]) {
-                        if (arguments.length >= 2)
-                            callback.call(thisArg, ents[i][1], ents[i][0], this);
-                        else
-                            callback(ents[i][1], ents[i][0], this);
+            forEach: {
+                value: function forEach(callback, thisArg) {
+                    var ents = this._entries;
+                    for (var i = 0; i < ents.length; i++) {
+                        if (mapData[i]) {
+                            if (arguments.length >= 2)
+                                callback.call(thisArg, ents[i][1], ents[i][0], this);
+                            else
+                                callback(ents[i][1], ents[i][0], this);
+                        }
                     }
                 }
             },
 
             //Map#get
-            get: function get(key) {
-                var ents = this._entries;
-                for (var i = 0, n = ents.length; i < n; i++) {
-                    if (ents[i] && is(key, ents[i][0])) {
-                        return ents[i][1];
+            get: {
+                value: function get(key) {
+                    var ents = this._entries;
+                    for (var i = 0, n = ents.length; i < n; i++) {
+                        if (ents[i] && is(key, ents[i][0])) {
+                            return ents[i][1];
+                        }
                     }
                 }
             },
 
             //Map#has
-            has: function has(key) {
-                var ents = this._entries;
-                for (var i = 0, n = ents.length; i < n; i++) {
-                    if (ents[i] && is(key, ents[i][0])) {
-                        return true;
+            has: {
+                value: function has(key) {
+                    var ents = this._entries;
+                    for (var i = 0, n = ents.length; i < n; i++) {
+                        if (ents[i] && is(key, ents[i][0])) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
             },
 
             //Map#set
-            set: function set(key, value) {
-                var ents = this._entries;
-                for (var i = 0, n = ents.length; i < n; i++) {
-                    if (ents[i] && is(key, ents[i][0])) {
-                        ents[i][1] = value;
-                        return this;
+            set: {
+                value: function set(key, value) {
+                    var ents = this._entries;
+                    for (var i = 0, n = ents.length; i < n; i++) {
+                        if (ents[i] && is(key, ents[i][0])) {
+                            ents[i][1] = value;
+                            return this;
+                        }
                     }
+                    ents.push([key, value]);
+                    ++ents.size;
+                    return this;
                 }
-                ents.push([key, value]);
-                ++ents.size;
-                return this;
-            }
-        });
-        defineProperty(window.Map.prototype, 'size', {
+            },
+
             //Map#size
-            get: function size() {
-                return this._entries.size;
+            size: {
+                get: function size() {
+                    return this._entries.size;
+                }
             }
         });
+
     } else {
         if (!testConst(NativeMap)) {
             window.Map = function Map(source) {
@@ -449,33 +480,35 @@
     if (!testIsIterable(window.Map.prototype)) {
         var MapIterator = function MapIterator(map, kind) {
             guardType(isMap, map, 'Map');
-            def(this, {
-                _map: map,
-                _index: 0,
-                _kind: kind
+            defineProperties(this, {
+                _map: { value: map },
+                _index: { value: 0 },
+                _kind: { value: kind }
             });
         }
-        def(MapIterator.prototype, 'next', function next() {
-            guardType(isMap, this, 'Map Iterator');
-                
-            var map = this._map,
-                kind = this._kind;
-            
-            if (!map)
-                return iterDone();
-            
-            var entries = map._entries;
-            
-            for (var i = this._index ; i < entries.length; i++) {
-                if (entries[i]) {
-                    var entry = entries[i];
-                    this._index = i + 1;
-                    return iterNext(kind == 'key' ? entry[0] : kind == 'value' ? entry[1] : entry)
+        defineProperty(MapIterator.prototype, 'next', {
+            value: function next() {
+                guardType(isMap, this, 'Map Iterator');
+
+                var map = this._map,
+                    kind = this._kind;
+
+                if (!map)
+                    return iterDone();
+
+                var entries = map._entries;
+
+                for (var i = this._index ; i < entries.length; i++) {
+                    if (entries[i]) {
+                        var entry = entries[i];
+                        this._index = i + 1;
+                        return iterNext(kind == 'key' ? entry[0] : kind == 'value' ? entry[1] : entry)
+                    }
                 }
+
+                this._map = void 0;
+                return iterDone();
             }
-            
-            this._map = void 0;
-            return iterDone();
         });
         
         if (NativeMap) {
@@ -483,11 +516,11 @@
                 get: function() {
                     guardType(isMap, this, 'Map');
                     if (!this.hasOwnProperty('_entries')) {
-                        var mapData = def([], {
-                            indexed: new NativeMap()
+                        var mapData = defineProperty([], 'indexed', {
+                            value: new NativeMap()
                         });
-                        def(this, {
-                            _entries: mapData
+                        defineProperty(this, '_entries', {
+                            value: mapData
                         });
                         return mapData;
                     }
@@ -495,23 +528,30 @@
             }
             );
         }
-        def(window.Map, {
+
+        defineProperties(window.Map, {
             //Map#entries
-            entries: function entries() {
-                guardMethod(isMap, this, 'Map.prototype.entries');
-                return new MapIterator(this, 'key+value');
+            entries: {
+                value: function entries() {
+                    guardMethod(isMap, this, 'Map.prototype.entries');
+                    return new MapIterator(this, 'key+value');
+                }
             },
 
             //Map#keys
-            keys: function keys() {
-                guardMethod(isMap, this, 'Map.prototype.keys');
-                return new MapIterator(this, 'key');
+            keys: {
+                value: function keys() {
+                    guardMethod(isMap, this, 'Map.prototype.keys');
+                    return new MapIterator(this, 'key');
+                }
             },
 
             //Map#values
-            values: function values() {
-                guardMethod(isMap, this, 'Map.prototype.values');
-                return new MapIterator(this, 'value');
+            values: {
+                value: function values() {
+                    guardMethod(isMap, this, 'Map.prototype.values');
+                    return new MapIterator(this, 'value');
+                }
             }
         });
     }
@@ -521,69 +561,85 @@
     if (!NativeSet) {
         window.Set = function Set() {
             guardType(isSet, this, 'Set');
-            def(this, '_values', def([], '_size', 0));
+            defineProperty(this, '_values', {
+                value: defineProperty([], '_size', {
+                    value: 0
+                })
+            });
         }
-        def(window.Set.prototype, {
+        defineProperties(window.Set.prototype, {
             //Set#add
-            add: function add(val) {
-                var vals = this._values;
-                for (var i = 0, n = vals.length; i < n; i++) {
-                    if (i in vals && is(val, vals[i])) {
-                        vals[i] = val;
-                        return this;
+            add: {
+                value: function add(val) {
+                    var vals = this._values;
+                    for (var i = 0, n = vals.length; i < n; i++) {
+                        if (i in vals && is(val, vals[i])) {
+                            vals[i] = val;
+                            return this;
+                        }
                     }
+                    vals.push(val);
+                    ++vals._size;
+                    return this;
                 }
-                vals.push(val);
-                ++vals._size;
-                return this;
             },
 
             //Set#clear
-            clear: function clear() {
-                var vals = this._values;
-                for (var i = 0, n = vals.length; i < n; i++) {
-                    delete vals[i];
+            clear: {
+                value: function clear() {
+                    var vals = this._values;
+                    for (var i = 0, n = vals.length; i < n; i++) {
+                        delete vals[i];
+                    }
+                    vals._size = 0;
                 }
-                vals._size = 0;
             },
 
             //Set#delete
-            'delete': function delete_(val) {
-                var vals = this._values;
-                for (var i = 0, n = vals.length; i < n; i++) {
-                    if (i in vals && is(val, vals[i])) {
-                        delete vals[i];
-                        --vals._size;
-                        return true;
+            'delete': {
+                value: function delete_(val) {
+                    var vals = this._values;
+                    for (var i = 0, n = vals.length; i < n; i++) {
+                        if (i in vals && is(val, vals[i])) {
+                            delete vals[i];
+                            --vals._size;
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
             },
 
             //Set#forEach
-            forEach: function forEach(callback, thisArg) {
-                var vals = this._values;
-                for (var i = 0; i < vals.length; i++) {
-                    if (i in vals) {
-                        if (arguments.length >= 2)
-                            callback.call(thisArg, vals[i], vals[i], this);
-                        else
-                            callback(vals[i], vals[i], this);
+            forEach: {
+                value: function forEach(callback, thisArg) {
+                    var vals = this._values;
+                    for (var i = 0; i < vals.length; i++) {
+                        if (i in vals) {
+                            if (arguments.length >= 2)
+                                callback.call(thisArg, vals[i], vals[i], this);
+                            else
+                                callback(vals[i], vals[i], this);
+                        }
                     }
                 }
             },
 
             //Set#has
-            has: function has(val) {
-                return this._values.includes(key);
-            }
-        });
-        defineProperty(window.Set.prototype, 'size', {
+            has: {
+                value: function has(val) {
+                    return this._values.includes(key);
+                }
+            },
+
             //Set#size
-            get: function size() {
-                return this._values.size;
+            size: {
+                get: function size() {
+                    return this._values.size;
+                }
             }
         });
+
     } else {
         if (!testConst(NativeSet)) {
             window.Set = function Set(source) {
@@ -600,14 +656,15 @@
     if (!testIsIterable(window.Set.prototype)) {
         var SetIterator = function SetIterator(set, kind) {
             guardType(isSet, set, 'Set');
-            def(this, {
-                _set: set,
-                _index: 0,
-                _kind: kind
+            defineProperties(this, {
+                _set: { value: set },
+                _index: { value: 0 },
+                _kind: { value: kind }
             });
         }
-        def(SetIterator.prototype, {
-            next: function next() {
+
+        defineProperty(SetIterator.prototype, 'next', {
+            value: function next() {
                 guardType(isSetIterator, this, 'Set Iterator');
 
                 if (!this._set)
@@ -634,11 +691,11 @@
                 get: function() {
                     guardType(isMap, this, 'Map');
                     if (!this.hasOwnProperty('_values')) {
-                        var vals = def([], {
-                            indexed: new NativeMap()
+                        var vals = defineProperty([], 'indexed', {
+                            value: new NativeMap()
                         });
-                        def(this, {
-                            _values: vals
+                        defineProperty(this, '_values', {
+                            value: vals
                         });
                         return vals;
                     }
@@ -646,23 +703,29 @@
             });
         }
 
-        def(window.Set, {
+        defineProperties(window.Set, {
             //Set#entries
-            entries: function entries() {
-                guardMethod(isSet, this, 'Set', 'entries');
-                return new SetIterator(this, 'key+value');
+            entries: {
+                value: function entries() {
+                    guardMethod(isSet, this, 'Set', 'entries');
+                    return new SetIterator(this, 'key+value');
+                }
             },
 
             //Set#keys
-            keys: function keys() {
-                guardMethod(isSet, this, 'Set', 'keys');
-                return new SetIterator(this, 'key');
+            keys: {
+                value: function keys() {
+                    guardMethod(isSet, this, 'Set', 'keys');
+                    return new SetIterator(this, 'key');
+                }
             },
 
             //Set#values
-            values: function values() {
-                guardMethod(isSet, this, 'Set', 'values');
-                return new SetIterator(this, 'value');
+            values: {
+                value: function values() {
+                    guardMethod(isSet, this, 'Set', 'values');
+                    return new SetIterator(this, 'value');
+                }
             }
         });
     }
