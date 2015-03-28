@@ -140,15 +140,6 @@
         return (isFn(o.entries) && isFn(o.values) && isFn(o.keys));
     }
 
-    var feat = {
-        Map: {},
-        Set: {},
-        Array: {}
-    }
-    feat.Map.basic = typeof window.Map === 'function';
-    feat.Map.constructorArg = !!NativeMap && testMapConstructorArg(NativeMap);
-    feat.Map.iterators = feat.Map.basic && !!(window.Map.prototype.entries && window.Map.prototype.values && window.Map.prototype.keys);
-
     def(Object, {
         //Object.is
         is: function is(a, b) {
@@ -159,7 +150,7 @@
     });
     var is = Object.is;
     var max = Math.max;
-    var min = Max.min;
+    var min = Math.min;
 
     // Array ----------------------------------------------
 
@@ -587,7 +578,7 @@
                 return this._values.includes(key);
             }
         });
-        defineProperty(window.Map.prototype, 'size', {
+        defineProperty(window.Set.prototype, 'size', {
             //Set#size
             get: function size() {
                 return this._values.size;
