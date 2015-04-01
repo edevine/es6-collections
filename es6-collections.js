@@ -367,10 +367,12 @@
     if (!NativeMap) {
         window.Map = function Map() {
             guardType(isMap, this, 'Map');
-            defineProperty(this, '_entries', {
-                value: defineProperty([], '_size', {
-                    value: 0
-                })
+            defineProperties(this, {
+                _entries: { value: [] },
+                _size: { 
+                    value: 0,
+                    writeable: true
+                }
             });
         }
         defineProperties(window.Map.prototype, {
@@ -381,7 +383,7 @@
                     for (var i = 0, n = ents.length; i < n; i++) {
                         delete ents[i];
                     }
-                    ents._size = 0;
+                    this._size = 0;
                 }
             },
 
@@ -392,7 +394,7 @@
                     for (var i = 0, n = ents.length; i < n; i++) {
                         if (ents[i] && is(key, ents[i][0])) {
                             delete ents[i];
-                            --ents[i]._size;
+                            --this._size;
                             return true;
                         }
                     }
@@ -451,7 +453,7 @@
                         }
                     }
                     ents.push([key, value]);
-                    ++ents.size;
+                    ++this._size;
                     return this;
                 }
             },
@@ -459,7 +461,7 @@
             //Map#size
             size: {
                 get: function size() {
-                    return this._entries.size;
+                    return this._size;
                 }
             }
         });
@@ -561,10 +563,12 @@
     if (!NativeSet) {
         window.Set = function Set() {
             guardType(isSet, this, 'Set');
-            defineProperty(this, '_values', {
-                value: defineProperty([], '_size', {
-                    value: 0
-                })
+            defineProperties(this, {
+                _values: { value: [] },
+                _size: { 
+                    value: 0,
+                    writeable: true
+                }
             });
         }
         defineProperties(window.Set.prototype, {
@@ -579,7 +583,7 @@
                         }
                     }
                     vals.push(val);
-                    ++vals._size;
+                    ++this._size;
                     return this;
                 }
             },
@@ -591,7 +595,7 @@
                     for (var i = 0, n = vals.length; i < n; i++) {
                         delete vals[i];
                     }
-                    vals._size = 0;
+                    this._size = 0;
                 }
             },
 
@@ -602,7 +606,7 @@
                     for (var i = 0, n = vals.length; i < n; i++) {
                         if (i in vals && is(val, vals[i])) {
                             delete vals[i];
-                            --vals._size;
+                            --this._size;
                             return true;
                         }
                     }
@@ -635,7 +639,7 @@
             //Set#size
             size: {
                 get: function size() {
-                    return this._values.size;
+                    return this._size;
                 }
             }
         });
