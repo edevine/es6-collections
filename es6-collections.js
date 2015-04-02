@@ -31,7 +31,7 @@
     }
     
     function isDef(val) {
-        return typeof val !== 'undefinied';
+        return typeof val !== 'undefined';
     }
 
     function isMap(map) {
@@ -39,7 +39,7 @@
     }
 
     function isSet(set) {
-        return set instanceof Set || toStrTag(map) === 'Set';
+        return set instanceof Set || toStrTag(set) === 'Set';
     }
 
     function isStr(object) {
@@ -145,7 +145,7 @@
 
     // Array.from
     if (!Array.from)
-        defineProperty(Array.prototype, 'from', {
+        defineProperty(Array, 'from', {
             value: function from(source /*, mapFn, thisArg*/) {
                 var mapFn = arguments[1],
                     thisArg = arguments[2];
