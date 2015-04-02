@@ -143,3 +143,73 @@ QUnit.test("Array.prototype.includes", function(assert) {
         true
     );
 });
+
+//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/entries#Examples
+QUnit.test("Array.prototype.entries", function(assert) {
+    var arr = ['a', 'b', 'c'];
+    var eArr = arr.entries();
+    assert.propEqual(
+        eArr.next().value,
+        [0, 'a']
+    );
+    assert.propEqual(
+        eArr.next().value,
+        [1, 'b']
+    );
+    assert.propEqual(
+        eArr.next().value,
+        [2, 'c']
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/keys#Examples
+QUnit.test("Array.prototype.keys", function(assert) {
+    var arr = ["a", "b", "c"];
+    var iterator = arr.keys();
+    assert.propEqual(
+        iterator.next(),
+        { value: 0, done: false }
+    );
+    assert.propEqual(
+        iterator.next(),
+        { value: 1, done: false }
+    );
+    assert.propEqual(
+        iterator.next(),
+        { value: 2, done: false }
+    );
+    assert.propEqual(
+        iterator.next(),
+        { value: undefined, done: true }
+    );
+    assert.propEqual(
+        Array.from(["a", , "c"].keys()),
+        [0, 1, 2]
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/values#Examples
+QUnit.test("Array.prototype.values", function(assert) {
+    var arr = ['w', 'y', 'k', 'o', 'p'];
+    var eArr = arr.values();
+    assert.propEqual(
+        eArr.next().value,
+        'w'
+    );
+    assert.propEqual(
+        eArr.next().value,
+        'y'
+    );
+    assert.propEqual(
+        eArr.next().value,
+        'k'
+    );
+    assert.propEqual(
+        eArr.next().value,
+        'o'
+    );
+    assert.propEqual(
+        eArr.next().value,
+        'p'
+    );
+});

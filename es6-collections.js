@@ -303,12 +303,15 @@
 
     if (!testIsIterable(window.Array.prototype)) {
             var ArrayIterator = function ArrayIterator(array, kind) {
-                guardType(isArray, this, 'Map');
+                guardType(isArray, array, 'Array');
                 defineProperties(this, {
                     _array: { value: array },
-                    _index: { value: 0 },
+                    _index: { value: 0, writable: true },
                     _kind: { value: kind }
                 });
+            }
+            var isArrayIterator = function(iterator) {
+                return iterator instanceof ArrayIterator;
             }
 
             defineProperty(ArrayIterator.prototype, 'next', {
@@ -370,7 +373,7 @@
                 _entries: { value: [] },
                 _size: { 
                     value: 0,
-                    writeable: true
+                    writable: true
                 }
             });
         }
@@ -568,7 +571,7 @@
                 _values: { value: [] },
                 _size: { 
                     value: 0,
-                    writeable: true
+                    writable: true
                 }
             });
         }
