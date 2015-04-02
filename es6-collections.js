@@ -117,7 +117,7 @@
 
     function toPos(i, len) {
         i = i | 0;
-        return max(0, i < 0 ? len + i : i);
+        return  i < 0 ? max(0, len + i) : min(i, len);
     }
     
     // FEATURE DETECTION
@@ -195,19 +195,13 @@
     if (!Array.prototype.copyWithin)
         defineProperty(Array.prototype, 'copyWithin', {
             value: function copyWithin(target, start/*, end*/) {
-                var end = arguments[2],
-                    self = toObject(this),
-                    len = toLen(self.length);
-
-                target = target >> 0;
-                start = start >> 0;
-                end = isDef(end) ? end >> 0 : len;
-
-                var to = target < 0 ? max(len + target, 0) : min(target, len),
-                    from = start < 0 ? max(len + start, 0) : min(start, len)
-                final = end < 0 ? max(len + end, 0) : min(end, len),
-                count = min(final - from, len - to),
-                direction = 1;
+                var self = toObject(this),
+                    len = toLen(self.length),
+                    end = arguments.length >= 3 ? toPos(arguments[2], len) : len,
+                    to = toPos(target, len),
+                    from = toPos(start, len),
+                    count = min(end - from, len - to),
+                    direction = 1;
 
                 if (from < to && to < (from + count)) {
                     direction = -1;
@@ -239,8 +233,8 @@
                     self = toObject(this),
                     len = toLen(self.length);
 
-                start = isDef(start) ? start < 0 ? len - toInt(start) : toInt(start) : 0;
-                end = isDef(end) ? min(len, max(start, end < 0 ? len - toInt(end) : toInt(end))) : len;
+                start = toPos(start, len);
+                end = toPos(end, len);
 
                 while (start < end) self[start++] = value;
 
@@ -263,7 +257,7 @@
 
                 for (var i = 0; i < len; i++) {
                     value = list[i];
-                    if (phasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
+                    if (hasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
                         return value;
                 }
                 return void 0;
