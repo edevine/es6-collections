@@ -146,7 +146,10 @@
     // Array.from
     if (!Array.from)
         defineProperty(Array.prototype, 'from', {
-            value: function from(source, mapFn, thisArg) {
+            value: function from(source /*, mapFn, thisArg*/) {
+                var mapFn = arguments[1],
+                    thisArg = arguments[2];
+                
                 if (source == null)
                     fail("Array.from requires an array-like object - not null or undefined");
 
@@ -230,8 +233,10 @@
     // Array#fill
     if (!Array.prototype.fill)
         defineProperty(Array.prototype, 'fill', {
-            value: function fill(value, start, end) {
-                var self = toObject(this),
+            value: function fill(value/*, start, end*/) {
+                var start = arguments[1],
+                    end = arguments[2],
+                    self = toObject(this),
                     len = toLen(self.length);
 
                 start = isDef(start) ? start < 0 ? len - toInt(start) : toInt(start) : 0;
@@ -246,7 +251,7 @@
     // Array#find
     if (!Array.prototype.find)
         defineProperty(Array.prototype, 'find', {
-            value: function find(predicate) {
+            value: function find(predicate/*, thisArg */) {
                 if (!isFun(predicate))
                     fail('predicate must be a function');
 
@@ -404,11 +409,13 @@
 
             //Map#forEach
             forEach: {
-                value: function forEach(callback, thisArg) {
-                    var ents = this._entries;
+                value: function forEach(callback/*, thisArg*/) {
+                    var thisArg = arguments[1],
+                        hasThisArg = arguments.length >= 2;
+                        ents = this._entries;
                     for (var i = 0; i < ents.length; i++) {
                         if (mapData[i]) {
-                            if (arguments.length >= 2)
+                            if (hasThisArg)
                                 callback.call(thisArg, ents[i][1], ents[i][0], this);
                             else
                                 callback(ents[i][1], ents[i][0], this);
@@ -616,11 +623,13 @@
 
             //Set#forEach
             forEach: {
-                value: function forEach(callback, thisArg) {
-                    var vals = this._values;
+                value: function forEach(callback/*, thisArg*/) {
+                    var thisArg = arguments[1]
+                        hasThisArg = arguments.length >= 2,
+                        vals = this._values;
                     for (var i = 0; i < vals.length; i++) {
                         if (i in vals) {
-                            if (arguments.length >= 2)
+                            if (hasThisArg)
                                 callback.call(thisArg, vals[i], vals[i], this);
                             else
                                 callback(vals[i], vals[i], this);
