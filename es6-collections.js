@@ -229,9 +229,9 @@
         defineProperty(Array.prototype, 'fill', {
             value: function fill(value/*, start, end*/) {
                 var start = arguments[1],
-                    end = arguments[2],
                     self = toObject(this),
-                    len = toLen(self.length);
+                    len = toLen(self.length),
+                    end = arguments.length >= 3 ? arguments[2] : len;
 
                 start = toPos(start, len);
                 end = toPos(end, len);
@@ -246,7 +246,7 @@
     if (!Array.prototype.find)
         defineProperty(Array.prototype, 'find', {
             value: function find(predicate/*, thisArg */) {
-                if (!isFun(predicate))
+                if (!isFn(predicate))
                     fail('predicate must be a function');
 
                 var thisArg = arguments[1],
@@ -256,7 +256,7 @@
                     value;
 
                 for (var i = 0; i < len; i++) {
-                    value = list[i];
+                    value = self[i];
                     if (hasThisArg ? predicate.call(thisArg, value, i, self) : predicate(value, i, self))
                         return value;
                 }
