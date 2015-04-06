@@ -9,6 +9,47 @@ function isPrime(element, index, array) {
     return element > 1;
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is#Examples
+QUnit.test("Object.is", function(assert) {
+    var test = { a: 1 };
+    assert.equal(
+        Object.is('foo', 'foo'),
+        true
+    );
+    assert.equal(
+        Object.is(window, window),
+        true
+    );
+    assert.equal(
+        Object.is('foo', 'bar'),
+        false
+    );
+    assert.equal(
+        Object.is([], []),
+        false
+    );
+    assert.equal(
+        Object.is(test, test),
+        true
+    );
+    assert.equal(
+        Object.is(null, null),
+        true
+    );
+    assert.equal(
+        Object.is(0, -1),
+        false
+    );
+    assert.equal(
+        Object.is(-0, -0),
+        true
+    );
+    assert.equal(
+        Object.is(NaN, 0/0),
+        true
+    );
+});
+
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/of#Examples
 QUnit.test("Array.of", function(assert) {
     assert.propEqual(

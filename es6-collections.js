@@ -134,7 +134,7 @@
             //Object.is
             value: function is(a, b) {
                 return a === 0 && b === 0
-                    ? 1 / v1 === 1 / v2
+                    ? 1 / a === 1 / b
                     : a === b || a !== a && b !== b;
             }
         });
