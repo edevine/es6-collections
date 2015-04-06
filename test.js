@@ -254,3 +254,190 @@ QUnit.test("Array.prototype.values", function(assert) {
         'p'
     );
 });
+
+QUnit.test("new Map", function(assert) {
+    var key = {};
+    var myMap = new Map([[key, 'a'], [NaN, 'b']]);
+    assert.equal(
+        myMap.size,
+        2
+    );
+    assert.equal(
+        myMap.get(key),
+        'a'
+    );
+    assert.equal(
+        myMap.get(NaN),
+        'b'
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/clear#Examples
+QUnit.test("Map.prototype.clear", function(assert) {
+    var myMap = new Map();
+    myMap.set("bar", "baz");
+    myMap.set(1, "foo");
+    
+    assert.equal(
+        myMap.size,
+        2
+    );
+    assert.equal(
+        myMap.has("bar"),
+        true
+    );
+    
+    myMap.clear()
+    
+    assert.equal(
+        myMap.size,
+        0
+    );
+    assert.equal(
+        myMap.has("bar"),
+        false
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/delete#Examples
+QUnit.test("Map.prototype.delete", function(assert) {
+    var myMap = new Map();
+    myMap.set("bar", "foo");
+    assert.equal(
+        myMap.has("bar"),
+        true
+    );
+    myMap.delete("bar");
+    assert.equal(
+        myMap.has("bar"),
+        false
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/entries#Examples
+QUnit.test("Map.prototype.entries", function(assert) {
+    var myMap = new Map();
+    myMap.set("0", "foo");
+    myMap.set(1, "bar");
+    myMap.set({}, "baz");
+    var mapIter = myMap.entries();
+    
+    assert.propEqual(
+        mapIter.next().value,
+        ["0", "foo"]
+    );
+    assert.propEqual(
+        mapIter.next().value,
+        [1, "bar"]
+    );
+    assert.propEqual(
+        mapIter.next().value,
+        [Object, "baz"]
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/forEach#Examples
+QUnit.test("Map.prototype.forEach", function(assert) {
+    var entries = [["foo", 3], ["bar", {}], ["baz", undefined]];
+    var myMap = new Map(entries);
+    var i = 0;
+    myMap.forEach(function (value, key, map) {
+        assert.equal(myMap, map);
+        assert.propEqual(
+            [key, value],
+            entries[i++]
+        );
+    });
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/get#Examples
+QUnit.test("Map.prototype.get", function(assert) {
+    var myMap = new Map();
+    myMap.set("bar", "foo");
+
+    assert.equal(
+        myMap.get("bar"),
+        "foo"
+    );
+    assert.equal(
+        myMap.get("baz"),
+        undefined
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/has#Examples
+QUnit.test("Map.prototype.has", function(assert) {
+    var myMap = new Map();
+    myMap.set("bar", "foo");
+
+    assert.equal(
+        myMap.has("bar"),
+        true
+    );
+    assert.equal(
+        myMap.has("baz"),
+        false
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/keys#Examples
+QUnit.test("Map.prototype.keys", function(assert) {
+    var key = {};
+    var myMap = new Map();
+    myMap.set("0", "foo");
+    myMap.set(1, "bar");
+    myMap.set(key, "baz");
+    var mapIter = myMap.keys();
+    
+    assert.equal(
+        mapIter.next().value,
+        "0"
+    );
+    assert.equal(
+        mapIter.next().value,
+        1
+    );
+    assert.equal(
+        mapIter.next().value,
+        key
+    );
+});
+
+QUnit.test("Map.prototype.set", function(assert) {
+    var myMap = new Map();
+    
+    assert.equal(
+        myMap.set(NaN, "foo"),
+        myMap
+    );
+    assert.equal(
+        myMap.size,
+        1
+    );
+    assert.equal(
+        myMap.has(NaN),
+        true
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/values#Examples
+QUnit.test("Map.prototype.values", function(assert) {
+    var myMap = new Map();
+    myMap.set("0", "foo");
+    myMap.set(1, "bar");
+    myMap.set({}, "baz");
+    var mapIter = myMap.values();
+    
+    assert.equal(
+        mapIter.next().value,
+        "foo"
+    );
+    assert.equal(
+        mapIter.next().value,
+        "bar"
+    );
+    assert.equal(
+        mapIter.next().value,
+        "baz"
+    );
+});
