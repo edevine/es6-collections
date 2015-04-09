@@ -35,7 +35,7 @@
     }
 
     function isMap(map) {
-        return map instanceof Map || toStrTag(map) === 'Map';
+        return map instanceof Map || NativeMap && map instanceof NativeMap || toStrTag(map) === 'Map';
     }
 
     function isSet(set) {
@@ -89,7 +89,7 @@
 
     function guardMethod(isType, obj, meth) {
         if (!isType(obj))
-            fail(meth + ' method called on incompatible ' + toStrTag(object));
+            fail(meth + ' method called on incompatible ' + toStrTag(obj));
     }
 
     function toObject(obj) {
@@ -487,15 +487,13 @@
         var MapIterator = function MapIterator(map, kind) {
             guardType(isMap, map, 'Map');
             defineProperties(this, {
-                _map: { value: map },
-                _index: { value: 0 },
+                _map: { value: map, writable: true },
+                _index: { value: 0, writable: true },
                 _kind: { value: kind }
             });
         }
         defineProperty(MapIterator.prototype, 'next', {
             value: function next() {
-                guardType(isMap, this, 'Map Iterator');
-
                 var map = this._map,
                     kind = this._kind;
 
@@ -518,24 +516,58 @@
         });
         
         if (NativeMap) {
-            defineProperty(window.Map, '_entries', {
-                get: function() {
-                    guardType(isMap, this, 'Map');
-                    if (!this.hasOwnProperty('_entries')) {
-                        var mapData = defineProperty([], 'indexed', {
-                            value: new NativeMap()
-                        });
-                        defineProperty(this, '_entries', {
-                            value: mapData
-                        });
-                        return mapData;
+            var nativeMap_clear = NativeMap.prototype.clear,
+                nativeMap_delete = NativeMap.prototype.delete,
+                nativeMap_set = NativeMap.prototype.set;
+            defineProperties(NativeMap.prototype, {
+                _entries: {
+                    get: function() {
+                        guardType(isMap, this, 'Map');
+                        if (!this.hasOwnProperty('_entries'))
+                            defineProperty(this, '_entries', { value: [] });
+                        return this._entries;
+                    }
+                },
+                _indexed: {
+                    get: function() {
+                        guardType(isMap, this, 'Map');
+                        if (!this.hasOwnProperty('_indexed'))
+                            defineProperty(this, '_indexed', { value: new NativeMap() });
+                        return this._indexed;
+                    }
+                },
+                clear: {
+                    value: function clear() {
+                        for (var i = 0, n = this._entries.length; i < n; i++)
+                            delete this._entries[i];
+                        nativeMap_clear.call(this._indexed);
+                        return nativeMap_clear.call(this);
+                    }
+                },
+                'delete': {
+                    value: function delete_(key) {
+                        var i = this._indexed.get(key);
+                        if (1 >= 0)
+                            delete this._entries[i];
+                        nativeMap_delete.call(this._indexed, key);
+                        return nativeMap_delete.call(this, key);
+                    }
+                },
+                set: {
+                    value: function set(key, value) {
+                        var i = this._indexed.get(key);
+                        if (i >= 0)
+                            this._entries[i][1] = value;
+                        else 
+                            nativeMap_set.call(this._indexed, key, this._entries.push([key, value]) - 1);
+                        nativeMap_set.call(this, key, value);
+                        return this;
                     }
                 }
-            }
-            );
+            });
         }
 
-        defineProperties(window.Map, {
+        defineProperties(NativeMap ? NativeMap.prototype : window.Map.prototype, {
             //Map#entries
             entries: {
                 value: function entries() {
@@ -697,7 +729,7 @@
         });
         
         if (NativeSet) {
-            defineProperty(window.Map.prototype, '_entries', {
+            defineProperty(window.Set.prototype, '_entries', {
                 get: function() {
                     guardType(isMap, this, 'Map');
                     if (!this.hasOwnProperty('_values')) {
@@ -713,7 +745,7 @@
             });
         }
 
-        defineProperties(window.Set, {
+        defineProperties(window.Set.prototype, {
             //Set#entries
             entries: {
                 value: function entries() {
