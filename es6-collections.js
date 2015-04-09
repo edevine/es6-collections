@@ -367,8 +367,9 @@
     // Map ------------------------------------------------
 
     if (!NativeMap) {
-        window.Map = function Map() {
+        window.Map = function Map(entries) {
             guardType(isMap, this, 'Map');
+            
             defineProperties(this, {
                 _entries: { value: [] },
                 _size: { 
@@ -376,6 +377,12 @@
                     writable: true
                 }
             });
+            if (isDef(entries)) {
+                guardType(isArray, entries, 'Array');
+                for (var i = 0, n = entries.length; i < n; i++) {
+                    this.set(entries[i][0], entries[i][1]);
+                }
+            }
         }
         defineProperties(window.Map.prototype, {
             //Map#clear
@@ -411,7 +418,7 @@
                         hasThisArg = arguments.length >= 2;
                         ents = this._entries;
                     for (var i = 0; i < ents.length; i++) {
-                        if (mapData[i]) {
+                        if (ents[i]) {
                             if (hasThisArg)
                                 callback.call(thisArg, ents[i][1], ents[i][0], this);
                             else
