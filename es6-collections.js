@@ -39,7 +39,7 @@
     }
 
     function isSet(set) {
-        return set instanceof Set || toStrTag(set) === 'Set';
+        return set instanceof Set || NativeSet && set instanceof NativeSet || toStrTag(set) === 'Set';
     }
 
     function isStr(object) {
@@ -706,21 +706,21 @@
         var SetIterator = function SetIterator(set, kind) {
             guardType(isSet, set, 'Set');
             defineProperties(this, {
-                _set: { value: set },
-                _index: { value: 0 },
+                _set: { value: set, writable: true },
+                _index: { value: 0, writable: true },
                 _kind: { value: kind }
             });
         }
 
         defineProperty(SetIterator.prototype, 'next', {
             value: function next() {
-                guardType(isSetIterator, this, 'Set Iterator');
-
-                if (!this._set)
+                var set = this._set,
+                    kind = this._kind;
+                    
+                if (!set)
                     return iterDone();
 
-                var vals = this._set._values,
-                    kind = this._kind;
+                var vals = set._values;
 
                 for (var i = this._index, n = vals.length; i < n; i++) {
                     if (i in vals) {
@@ -730,29 +730,65 @@
                     }
                 }
 
-                this._map = void 0;
+                this._set = void 0;
                 return iterDone();
             }
         });
         
         if (NativeSet) {
-            defineProperty(window.Set.prototype, '_entries', {
-                get: function() {
-                    guardType(isMap, this, 'Map');
-                    if (!this.hasOwnProperty('_values')) {
-                        var vals = defineProperty([], 'indexed', {
-                            value: new NativeMap()
-                        });
-                        defineProperty(this, '_values', {
-                            value: vals
-                        });
-                        return vals;
+            var nativeSet_add = NativeSet.prototype.add
+                nativeSet_clear = NativeSet.prototype.clear,
+                nativeSet_delete = NativeSet.prototype.delete;
+            
+            defineProperties(NativeSet.prototype, {
+                _values: {
+                    get: function() {
+                        guardType(isSet, this, 'Set');
+                        if (!this.hasOwnProperty('_values'))
+                            defineProperty(this, '_values', { value: [] });
+                        return this._values;
+                    }
+                },
+                _indexed: {
+                    get: function() {
+                        guardType(isSet, this, 'Set');
+                        if (!this.hasOwnProperty('_indexed'))
+                            defineProperty(this, '_indexed', { value: new NativeMap() });
+                        return this._indexed;
+                    }
+                },
+                add: {
+                    value: function add(value) {
+                        var i = this._indexed.get(value);
+                        if (i >= 0)
+                            this._values[i] = value;
+                        else 
+                            nativeMap_set.call(this._indexed, value, this._values.push(value) - 1);
+                        nativeSet_add.call(this, value);
+                        return this;
+                    }
+                },
+                clear: {
+                    value: function clear() {
+                        for (var i = 0, n = this._values.length; i < n; i++)
+                            delete this._values[i];
+                        nativeMap_clear.call(this._indexed);
+                        return nativeSet_clear.call(this);
+                    }
+                },
+                'delete': {
+                    value: function delete_(value) {
+                        var i = this._indexed.get(value);
+                        if (1 >= 0)
+                            delete this._values[i];
+                        nativeMap_delete.call(this._indexed, value);
+                        return nativeSet_delete.call(this, value);
                     }
                 }
             });
         }
 
-        defineProperties(window.Set.prototype, {
+        defineProperties(NativeSet ? NativeSet.prototype : window.Set.prototype, {
             //Set#entries
             entries: {
                 value: function entries() {

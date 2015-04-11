@@ -441,3 +441,140 @@ QUnit.test("Map.prototype.values", function(assert) {
         "baz"
     );
 });
+
+QUnit.test("new Set", function(assert) {
+    var value = {};
+    var myMap = new Set([value, NaN]);
+    assert.equal(
+        myMap.size,
+        2
+    );
+    assert.equal(
+        myMap.has(value),
+        true
+    );
+    assert.equal(
+        myMap.has(NaN),
+        true
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/add#Examples
+QUnit.test("Set.prototype.add", function(assert) {
+    var mySet = new Set();
+    
+    assert.equal(
+        mySet.add(NaN),
+        mySet
+    );
+    assert.equal(
+        mySet.size,
+        1
+    );
+    assert.equal(
+        mySet.has(NaN),
+        true
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/clear#Example:_Testing_size_of_all_array_elements
+QUnit.test("Set.prototype.clear", function(assert) {
+    var mySet = new Set();
+    mySet.add(1);
+    mySet.add("foo");
+
+    assert.equal(
+        mySet.size,
+        2
+    );
+    assert.equal(
+        mySet.has("foo"),
+        true
+    );
+    mySet.clear();
+    assert.equal(
+        mySet.size,
+        0
+    );
+    assert.equal(
+        mySet.has("foo"),
+        false
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/delete#Examples
+QUnit.test("Set.prototype.delete", function(assert) {
+    var mySet = new Set();
+    mySet.add("foo");
+
+    assert.equal(
+        mySet.delete("bar"),
+        false
+    );
+    assert.equal(
+        mySet.delete("foo"),
+        true
+    );
+    assert.equal(
+        mySet.has("foo"),
+        false
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/entries#Examples
+QUnit.test("Set.prototype.entries", function(assert) {
+    var mySet = new Set();
+    mySet.add("foobar");
+    mySet.add(1);
+    mySet.add("baz");
+    var setIter = mySet.entries();
+
+    assert.propEqual(
+        setIter.next().value,
+        ["foobar", "foobar"]
+    );
+    assert.propEqual(
+        setIter.next().value,
+        [1, 1]
+    );
+    assert.propEqual(
+        setIter.next().value,
+        ["baz", "baz"]
+    );
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/forEach#Examples
+QUnit.test("Set.prototype.forEach", function(assert) {
+    var entries = ["foo", "bar", undefined];
+    var mySet = new Set(entries);
+    var i = 0;
+    mySet.forEach(function (value, key, set) {
+        assert.equal(mySet, set);
+        assert.propEqual(
+            [key, value],
+            [entries[i], entries[i++]]
+        );
+    });
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/has#Examples
+QUnit.test("Set.prototype.values", function(assert) {
+    var mySet = new Set();
+    mySet.add("foo");
+    mySet.add("bar");
+    mySet.add("baz");
+    var setIter = mySet.values();
+    
+    assert.equal(
+        setIter.next().value,
+        "foo"
+    );
+    assert.equal(
+        setIter.next().value,
+        "bar"
+    );
+    assert.equal(
+        setIter.next().value,
+        "baz"
+    );
+});
